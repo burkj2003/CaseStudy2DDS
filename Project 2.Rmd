@@ -15,6 +15,7 @@ library(class)
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
+library(GGally)
 #library(data.table)
 #library(mice)
 #library(ggalt)
@@ -60,6 +61,58 @@ trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
 train = Comp[trainIndices,]
 test = Comp[-trainIndices,]
 
+############################
+
+stay <- Comp %>% filter(Attrition == "No")
+go <- Comp %>% filter(Attrition == "Yes")
+
+smallstay <- stay[-c(3,4,6,9,13,17,19,23,24)]
+meanstay <- colMeans(smallstay)
+
+smallstay <- rbind(smallstay, meanstay)
+
+smallgo <- go[-c(3,4,6,9,13,17,19,23,24)]
+meango <- colMeans(smallgo)
+
+smallgo <- rbind(smallgo, meango)
+
+
+allmeans <- data.frame(matrix(NA, nrow = 1, ncol = 28))
+for (i in 1:28) {
+  allmeans[,i] <- (smallstay[731,i] - smallgo[141,i]) / (smallstay[731,i] + smallgo[141,i])
+}
+colnames(allmeans) <- colnames(smallgo)
+
+amr <- data.frame(r1=names(allmeans),t(allmeans))
+colnames(amr) <- c("ID","value")
+
+x <- amr[order(amr$value),]
+x$value <- x$value * 100
+
+x$line <- ifelse(x$value < 0, "below", "above")
+
+ggplot(x, aes(x=reorder(ID, value), y=value)) + 
+  geom_bar(stat='identity', aes(fill=line), width=.5)  +
+  scale_fill_manual(name="Percentage Difference", 
+                    labels = c("Above Average", "Below Average"), 
+                    values = c("above"="#00ba38", "below"="#f8766d")) + 
+  labs(x="Employee Data", subtitle="Normalised Percentage Difference between Attrition and Retention", 
+       title= "Employee Stats - Diverging Bars") + 
+  coord_flip()
+
+# Data Prep
+
+percentages <- data.frame(perc = 1:37)
+percentages$perc = 0
+
+# Plot charts for each contributing factor
+Comp %>% select(Attrition, StockOptionLevel) %>% ggpairs(aes(color=Attrition))
+Comp %>% select(Attrition, YearsInCurrentRole) %>% ggpairs(aes(color=Attrition))
+Comp %>% select(Attrition, TurnoverRatio) %>% ggpairs(aes(color=Attrition))
+
+Comp %>% select(Attrition, StockOptionLevel, YearsInCurrentRole, TurnoverRatio) %>% ggpairs(aes(color=Attrition))
+
+###############################
 # Knn
 ## First find the best k-factor
 accs = data.frame(accuracy = numeric(30), k = numeric(30))
@@ -75,156 +128,23 @@ for(i in 1:30)
 
 plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab = "Accuracy", main = "K-factor vs Accuracy") 
 
-
 # plot knn
 test %>% ggplot(aes(x = Age, TurnoverRatio,color = Attrition)) + geom_point() + ggtitle("Age vs Gender") + theme(plot.title = element_text(hjust = 0.5))
 train %>% ggplot(aes(x = Age, DistanceFromHome,color = Attrition)) + geom_point() + ggtitle("Age vs Gender") + theme(plot.title = element_text(hjust = 0.5))
 
-# first knn
-classifications = knn(train[,c(2,37)],test[,c(2,37)],train$Attrition, prob = T, k = 11)
-table(classifications,test$Attrition)
-confusionMatrix(table(classifications,test$Attrition))
-
-# second knn
-classifications = knn(train[,c(2,30)],test[,c(2,30)],train$Attrition, prob = TRUE, k = 11)
-table(test$Attrition,classifications)
-CM = confusionMatrix(table(test$Attrition,classifications))
-CM
-
-# third knn
+# knn
 classifications = knn(train[,c(2,33)],test[,c(2,33)],train$Attrition, prob = TRUE, k = 10)
 table(test$Attrition,classifications)
 CM = confusionMatrix(table(test$Attrition,classifications))
 CM
 
-
-# NB
-simple <- train[-c(1,4:12,14:39)]
-simple$Age = as.factor(simple$Age)
-model = naiveBayes(Attrition~., data = simple)
-df = data.frame(Age = "30", Gender = "Male")
-predict(model,df)
-predict(model, df, type = "raw")
-
-
-# First NB
-model = naiveBayes(train[,c(2,30,37)],as.factor(train$Attrition),laplace = 1)
-table(predict(model,test[,c(2,30,37)]),as.factor(test$Attrition))
-CM = confusionMatrix(table(predict(model,test[,c(2,30,37)]),as.factor(test$Attrition)))
-CM
-
-# Second NB
-model = naiveBayes(train[,c(2,13,19,37)],factor(train$Attrition, labels = c("No", "Yes")))
-table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,13,19,37)]))
-CM = confusionMatrix(table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,13,19,37)])))
-CM
-
-# Third NB
+# NB Model and Confusion Matrix
 model = naiveBayes(train[,c(2,29,33,37)],factor(train$Attrition, labels = c("No", "Yes")))
 table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,29,33,37)]))
 CM = confusionMatrix(table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,29,33,37)])))
 CM
 
-
-
-#############################
-
-# Data Prep
-AttFilter <- Comp %>% filter(Attrition == "Yes")
-
-percentages <- data.frame(perc = 1:39)
-percentages$perc = 0
-
-AttrPerc <- Comp %>% count(Attrition)
-
-#if (AttrPerc$Attrition == "Yes") {
-#  AP = AttrdPerc$n
-#}
-
-AP <- AttrPerc[2,]$n
-
-
-
-for (i in 1:dim(percentages)[1]) {
-  
-  percentages[i,] = Comp$ID / AP
-  
-}
-
-
-
-
-
-
-
-
-
-###############
-# plot
-data("mtcars")  # load data
-mtcars$`car name` <- rownames(mtcars)  # create new column for car names
-
-
-AttFilter$xxxxx <- round((AttFilter$mpg - mean(AttFilter$mpg))/sd(AttFilter$mpg), 2)  # compute normalized mpg
-AttFilter$mpg_type <- ifelse(AttFilter$mpg_z < 0, "below", "above")  # above / below avg flag
-AttFilter <- AttFilter[order(AttFilter$mpg_z), ]  # sort
-AttFilter$`car name` <- factor(AttFilter$`car name`, levels = AttFilter$`car name`)  # convert to factor to retain sorted order in plot.
-
-# Diverging Barcharts
-ggplot(AttFilter, aes(x=`name here`, y=percentages, label=percentages)) + 
-  geom_bar(stat='xxxxxxxx', aes(fill=xxxxxxx), width=.5)  +
-  scale_fill_manual(name="Percentages", 
-                    labels = c("Above Average", "Below Average"), 
-                    values = c("above"="#00ba38", "below"="#f8766d")) + 
-  labs(subtitle="Normalised percentages of Attrition attributes", 
-       title= "Diverging Bars") + 
-  coord_flip()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#################################
 
 
 
