@@ -1,3 +1,3 @@
 # Project-Two
 
-My final project for DDS-6306
+My final project for DS-6306
