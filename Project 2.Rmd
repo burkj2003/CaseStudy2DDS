@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ---
 title: "Project 2"
 author: "Jason Burk"
