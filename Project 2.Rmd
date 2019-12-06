@@ -26,14 +26,6 @@ CompNoSal = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Salary.
 CompNoAtt = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Attrition.csv")
 cols = dim(Comp)[1]
 
-# Filter Attrition
-CompAtt <- Comp %>% filter(Attrition == "Yes")
-CompNoAtt <- Comp %>% filter(Attrition == "No")
-
-# Add missing columns to Competition Sets
-CompNoAtt <- CompNoAtt %>% add_column(Attrition="", .after = "Age")
-CompNoSal <- CompNoSal %>% add_column(MonthlyIncome=0, .after = "MaritalStatus")
-
 # Test the data to see if any N/A data, if so remove the n/a data
 if (any(is.na(Comp))) {
   Comp <- na.omit(Comp)
@@ -44,6 +36,15 @@ if (any(is.na(CompNoSal))) {
 if (any(is.na(CompNoAtt))) {
   CompNoAtt <- na.omit(CompNoAtt)
 }
+
+# Filter Attrition
+CompAtt <- Comp %>% filter(Attrition == "Yes")
+CompNoAtt <- Comp %>% filter(Attrition == "No")
+
+# Add missing columns to Competition Sets
+CompNoAtt <- CompNoAtt %>% add_column(Attrition="", .after = "Age")
+CompNoSal <- CompNoSal %>% add_column(MonthlyIncome=0, .after = "MaritalStatus")
+
 
 ################################
 
@@ -98,42 +99,71 @@ gg <- ggplot(Comp, aes(x=YearsAtCompany, y=MonthlyIncome)) +
 
 plot(gg)
 
-### no
-g <- ggplot(Comp, aes(YearsAtCompany))
-g + geom_density(aes(fill=factor(Attrition)), alpha=0.8) + 
-    labs(title="Density plot", 
-         subtitle="City Mileage Grouped by Number of cylinders",
-         caption="Source: mpg",
-         x="Years at the Company",
-         fill="Attrition")
 
 
-### no
-brks <- seq(-15000000, 15000000, 5000000)
-lbls = paste0(as.character(c(seq(15, 0, -5), seq(5, 15, 5))), "m")
-
-# Plot  
-ggplot(Comp, aes(x = Education, y = YearsAtCompany, fill = Attrition)) +   # Fill column
-                              geom_bar(stat = "identity", width = .8) +   # draw the bars
-                              scale_y_continuous(breaks = brks,   # Breaks
-                                                 labels = lbls) + # Labels
-                              coord_flip() +  # Flip axes
-                              labs(title="Attrition Based on Education") +
-                              theme_tufte() +  # Tufte theme from ggfortify
-                              theme(plot.title = element_text(hjust = .5), 
-                                    axis.ticks = element_blank()) +   # Centre plot title
-                              scale_fill_brewer(palette = "Dark2") # Color palette
 
 
-########
+ggplot(Comp, aes(x=JobRole, y=JobSatisfaction)) + 
+  geom_bar(stat="identity", width=.5, fill="tomato3") + 
+  labs(title="Ordered Bar Chart", 
+       subtitle="Make Vs Avg. Mileage", 
+       caption="source: mpg") + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
 
-ggplot(data=Comp, aes(x=Education, y=YearsAtCompany, fill=Attrition), inherit.aes = F) +
-  geom_bar(stat="identity")+
-  geom_text(aes(y=label_ypos, label=len), vjust=1.6, 
-            color="white", size=3.5)+
-  scale_fill_brewer(palette="Paired")+
-  theme_minimal()
+# Histogram on a Categorical variable
+g <- ggplot(Comp, aes(JobRole))
+g + geom_bar(aes(fill=JobSatisfaction), width = 0.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="Histogram on Categorical Variable", 
+       subtitle="Manufacturer across Vehicle Classes") 
+
+
+# Box plot of Job Satisfaction by Role with Attrition
+g <- ggplot(Comp, aes(JobRole, JobSatisfaction))
+g + geom_boxplot(aes(fill=factor(Attrition))) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+    labs(title="Box plot of Attrition", 
+         subtitle="Job Satisfaction by Job Role",
+         x="Job Role",
+         y="Job Satisfaction")
+
+x <- Comp %>% filter(Attrition == "Yes") %>% count(JobRole)
+
+g <- ggplot(Comp, aes(JobRole, x))
+g + geom_boxplot(aes(fill=factor(Attrition))) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+    labs(title="Box plot of Attrition", 
+         subtitle="Job Satisfaction by Job Role",
+         x="Job Role",
+         y="Job Satisfaction")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 hist(CompAtt$MonthlyIncome, col = "red", breaks = 50, 
@@ -166,13 +196,17 @@ hist(CompAtt$TurnoverRatio, col = "red", breaks = 35,
 hist(CompNoAtt$TurnoverRatio, col = "green", breaks = 35,
      main = "Turnover Ratio (No Attrition)", xlab = "Turnover Ratio", ylab = "Occurances") 
 
+hist(CompAtt$StockOptionLevel, col = "red", breaks = 4,
+     main = "Stock Option Level (Attrition)", xlab = "Stock Options", ylab = "Occurances") 
+hist(CompNoAtt$StockOptionLevel, col = "green", breaks = 4,
+     main = "Stock Option Level (No Attrition)", xlab = "Stock Options", ylab = "Occurances") 
 
+hist(CompAtt$YearsInCurrentRole, col = "red", breaks = 18,
+     main = "Years in Current Role (Attrition)", xlab = "Years in Current Role", ylab = "Occurances") 
+hist(CompNoAtt$YearsInCurrentRole, col = "green", breaks = 18,
+     main = "Years in Current Role (No Attrition)", xlab = "Years in Current Role", ylab = "Occurances") 
 
-
-
-
-
-
+###################################
 
 
 
