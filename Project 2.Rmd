@@ -45,11 +45,10 @@ CompNoAtt <- Comp %>% filter(Attrition == "No")
 CompNoAtt <- CompNoAtt %>% add_column(Attrition="", .after = "Age")
 CompNoSal <- CompNoSal %>% add_column(MonthlyIncome=0, .after = "MaritalStatus")
 
-
 ################################
 
 # Plot charts
-
+## Chart of Age vs Income
 gg <- ggplot(Comp, aes(x=Age, y=MonthlyIncome)) + 
   geom_point(aes(col=Attrition)) + 
   geom_smooth(method="loess", se=F) + 
@@ -62,7 +61,7 @@ gg <- ggplot(Comp, aes(x=Age, y=MonthlyIncome)) +
 
 plot(gg)
 
-
+## Chart of Age vs Distance from Home
 gg <- ggplot(Comp, aes(x=Age, y=DistanceFromHome)) + 
   geom_point(aes(col=Attrition)) + 
   geom_smooth(method="loess", se=F) + 
@@ -75,6 +74,7 @@ gg <- ggplot(Comp, aes(x=Age, y=DistanceFromHome)) +
 
 plot(gg)
 
+## Chart of Age vs Years At company
 gg <- ggplot(Comp, aes(x=Age, y=YearsAtCompany)) + 
   geom_point(aes(col=Attrition)) + 
   geom_smooth(method="loess", se=F) + 
@@ -87,6 +87,7 @@ gg <- ggplot(Comp, aes(x=Age, y=YearsAtCompany)) +
 
 plot(gg)
 
+# Chart of Years at Company vs Monthly Income
 gg <- ggplot(Comp, aes(x=YearsAtCompany, y=MonthlyIncome)) + 
   geom_point(aes(col=Attrition)) + 
   geom_smooth(method="loess", se=F) + 
@@ -100,24 +101,13 @@ gg <- ggplot(Comp, aes(x=YearsAtCompany, y=MonthlyIncome)) +
 plot(gg)
 
 
-
-
-
+#####
 ggplot(Comp, aes(x=JobRole, y=JobSatisfaction)) + 
   geom_bar(stat="identity", width=.5, fill="tomato3") + 
   labs(title="Ordered Bar Chart", 
        subtitle="Make Vs Avg. Mileage", 
        caption="source: mpg") + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6))
-
-
-# Histogram on a Categorical variable
-g <- ggplot(Comp, aes(JobRole))
-g + geom_bar(aes(fill=JobSatisfaction), width = 0.5) + 
-  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
-  labs(title="Histogram on Categorical Variable", 
-       subtitle="Manufacturer across Vehicle Classes") 
-
 
 # Box plot of Job Satisfaction by Role with Attrition
 g <- ggplot(Comp, aes(JobRole, JobSatisfaction))
@@ -128,9 +118,12 @@ g + geom_boxplot(aes(fill=factor(Attrition))) +
          x="Job Role",
          y="Job Satisfaction")
 
-x <- Comp %>% filter(Attrition == "Yes") %>% count(JobRole)
+# Reduce data to only the top 5 Job Roles that have the highest attrition
+cols <- c("Sales Representative","Sales Executive", "Research Scientist", "Laboratory Technician", "Human Resources")
+RedRole <- Comp %>% filter(JobRole %in% cols)
 
-g <- ggplot(Comp, aes(JobRole, x))
+# Plot the Reduced job roles and job satisfaction
+g <- ggplot(RedRole, aes(JobRole, JobSatisfaction))
 g + geom_boxplot(aes(fill=factor(Attrition))) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
     labs(title="Box plot of Attrition", 
@@ -138,34 +131,59 @@ g + geom_boxplot(aes(fill=factor(Attrition))) +
          x="Job Role",
          y="Job Satisfaction")
 
+# Plot the Reduced job roles and STockOption Level
+g <- ggplot(RedRole, aes(JobRole, StockOptionLevel))
+g + geom_boxplot(aes(fill=factor(Attrition))) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+    labs(title="Box plot of Attrition", 
+         subtitle="Stock Option Level by Job Role",
+         x="Job Role",
+         y="Stock Option Level")
 
+# Plot the Reduced job roles and Years in Current Role
+g <- ggplot(RedRole, aes(JobRole, YearsInCurrentRole))
+g + geom_boxplot(aes(fill=factor(Attrition))) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+    labs(title="Box plot of Attrition", 
+         subtitle="Stock Option Level by Job Role",
+         x="Job Role",
+         y="Stock Option Level")
 
+# Plot the Reduced job roles and TurnoverRatio
+g <- ggplot(RedRole, aes(JobRole, TurnoverRatio))
+g + geom_boxplot(aes(fill=factor(Attrition))) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+    labs(title="Box plot of Attrition", 
+         subtitle="Stock Option Level by Job Role",
+         x="Job Role",
+         y="Stock Option Level")
 
+# Bar chart of ATtrition by Role
+x <- Comp %>% filter(Attrition == "Yes") %>% count(JobRole)
 
+g <- ggplot(x, aes(JobRole, n))
+g + geom_bar(stat="identity", width = 0.8, fill="lightskyblue") + 
+      labs(title="Bar Chart", 
+          subtitle="Attrition by Job Role",
+          x="Job Role",
+          y="Attrition Count") +
+      theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
+# Bar chart of ATtrition by Role
+y <- Comp %>% filter(Attrition == "No") %>% count(JobRole)
 
+g <- ggplot(y, aes(JobRole, n))
+g + geom_bar(stat="identity", width = 0.8, fill="lightskyblue") + 
+      labs(title="Bar Chart", 
+          subtitle="Attrition by Job Role",
+          x="Job Role",
+          y="Attrition Count") +
+      theme(axis.text.x = element_text(angle=65, vjust=0.6))
 
+z$JobRole <- x$JobRole
+z$n <- x$n / (x$n + y$n) * 100
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# histograms
 hist(CompAtt$MonthlyIncome, col = "red", breaks = 50, 
     main = "Monthly Income (Attrition)", xlab = "Monthly Income", ylab = "Occurances") 
 hist(CompNoAtt$MonthlyIncome, col = "green", breaks = 50,
@@ -208,20 +226,6 @@ hist(CompNoAtt$YearsInCurrentRole, col = "green", breaks = 18,
 
 ###################################
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Compute new columns of data
 
 ## Turnover Ratio is based on the number of years in the work force divided by the number of companies worked.
@@ -237,28 +241,15 @@ for (i in 1:cols) {
 }
 Comp$TurnoverRatio = turnover$TurnoverRatio
 
-# Split the data into a train and test set based on a defined percentage
-set.seed(14)
-splitPerc = 0.75
-trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
-train = Comp[trainIndices,]
-test = Comp[-trainIndices,]
-
-############################
-
-stay <- Comp %>% filter(Attrition == "No")
-go <- Comp %>% filter(Attrition == "Yes")
-
-smallstay <- stay[-c(3,4,6,9,13,17,19,23,24)]
+smallstay <- CompNoAtt[-c(3,4,6,9,13,17,19,23,24)]
 meanstay <- colMeans(smallstay)
 
 smallstay <- rbind(smallstay, meanstay)
 
-smallgo <- go[-c(3,4,6,9,13,17,19,23,24)]
+smallgo <- CompAtt[-c(3,4,6,9,13,17,19,23,24)]
 meango <- colMeans(smallgo)
 
 smallgo <- rbind(smallgo, meango)
-
 
 allmeans <- data.frame(matrix(NA, nrow = 1, ncol = 28))
 for (i in 1:28) {
@@ -274,6 +265,7 @@ x$value <- x$value * 100
 
 x$line <- ifelse(x$value < 0, "below", "above")
 
+# Plot diverging bars chart with percentage differences of the overall population
 ggplot(x, aes(x=reorder(ID, value), y=value)) + 
   geom_bar(stat='identity', aes(fill=line), width=.5)  +
   scale_fill_manual(name="Percentage Difference", 
@@ -283,11 +275,6 @@ ggplot(x, aes(x=reorder(ID, value), y=value)) +
        title= "Employee Stats - Diverging Bars") + 
   coord_flip()
 
-# Data Prep
-
-percentages <- data.frame(perc = 1:37)
-percentages$perc = 0
-
 # Plot charts for each contributing factor
 Comp %>% select(Attrition, StockOptionLevel) %>% ggpairs(aes(color=Attrition))
 Comp %>% select(Attrition, YearsInCurrentRole) %>% ggpairs(aes(color=Attrition))
@@ -295,9 +282,36 @@ Comp %>% select(Attrition, TurnoverRatio) %>% ggpairs(aes(color=Attrition))
 
 Comp %>% select(Attrition, StockOptionLevel, YearsInCurrentRole, TurnoverRatio) %>% ggpairs(aes(color=Attrition))
 
-###############################
+# Data Prep
+percentages <- data.frame(perc = 1:37)
+percentages$perc = 0
+
+
+#####################################
+
+
+
+
+
+
+
+
+
+#####################################
+
+# Predicting Future Attrition
+
+#####################################
+
 # Knn
-## First find the best k-factor
+# Split the data into a train and test set based on a defined percentage
+set.seed(14)
+splitPerc = 0.75
+trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
+train = Comp[trainIndices,]
+test = Comp[-trainIndices,]
+
+## Find the best k-factor
 accs = data.frame(accuracy = numeric(30), k = numeric(30))
 
 for(i in 1:30)
@@ -328,7 +342,6 @@ CM = confusionMatrix(table(factor(test$Attrition, labels = c("No", "Yes")),predi
 CM
 
 #################################
-
 
 
 
