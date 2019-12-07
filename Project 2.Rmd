@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ---
 title: "Project 2"
 author: "Jason Burk"
@@ -20,31 +19,81 @@ library(dplyr)
 library(GGally)
 library(tibble)
 library(ggthemes)
+library(reshape2)
+library(devtools)
+library(caret)
+
 
 # read in the data from .CSV files
 Comp = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2-data.csv")
-CompNoSal = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Salary.csv")
-CompNoAtt = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Attrition.csv")
+CompNoSalary = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Salary.csv")
+CompNoAttrition = read.csv("~/03-School/DS 6306/Project 2/CaseStudy2CompSet No Attrition.csv")
+
+Comp1 = Comp
+CompNoSalary1 = CompNoSalary
+CompNoAttrition1 = CompNoAttrition
+
 cols = dim(Comp)[1]
 
 # Test the data to see if any N/A data, if so remove the n/a data
 if (any(is.na(Comp))) {
   Comp <- na.omit(Comp)
 }
-if (any(is.na(CompNoSal))) {
-  CompNoSal <- na.omit(CompNoSal)
+if (any(is.na(CompNoSalary))) {
+  CompNoSalary <- na.omit(CompNoSalary)
 }
-if (any(is.na(CompNoAtt))) {
-  CompNoAtt <- na.omit(CompNoAtt)
+if (any(is.na(CompNoAttrition))) {
+  CompNoAttrition <- na.omit(CompNoAttrition)
 }
+
+# Compute new columns of data
+
+## Turnover Ratio is based on the number of years in the work force divided by the number of companies worked.
+## The higher the ratio the longer they stay with a company  
+cols <- dim(Comp)[1]
+turnover = data.frame(TurnoverRatio = 1:cols)
+for (i in 1:cols) {
+  if (Comp[i,]$NumCompaniesWorked == 0) {
+    turnover[i,] = Comp[i,]$TotalWorkingYears / (Comp[i,]$NumCompaniesWorked + 1)
+  }
+  else {
+    turnover[i,] = Comp[i,]$TotalWorkingYears / Comp[i,]$NumCompaniesWorked
+  }
+}
+Comp$TurnoverRatio = turnover$TurnoverRatio
+
+cols <- dim(CompNoAttrition)[1]
+turnover = data.frame(TurnoverRatio = 1:cols)
+for (i in 1:cols) {
+  if (CompNoAttrition[i,]$NumCompaniesWorked == 0) {
+    turnover[i,] = CompNoAttrition[i,]$TotalWorkingYears / (CompNoAttrition[i,]$NumCompaniesWorked + 1)
+  }
+  else {
+    turnover[i,] = CompNoAttrition[i,]$TotalWorkingYears / CompNoAttrition[i,]$NumCompaniesWorked
+  }
+}
+CompNoAttrition$TurnoverRatio = turnover$TurnoverRatio
+
+
+cols <- dim(CompNoSalary)[1]
+turnover = data.frame(TurnoverRatio = 1:cols)
+for (i in 1:cols) {
+  if (CompNoSalary[i,]$NumCompaniesWorked == 0) {
+    turnover[i,] = CompNoSalary[i,]$TotalWorkingYears / (CompNoSalary[i,]$NumCompaniesWorked + 1)
+  }
+  else {
+    turnover[i,] = CompNoSalary[i,]$TotalWorkingYears / CompNoSalary[i,]$NumCompaniesWorked
+  }
+}
+CompNoSalary$TurnoverRatio = turnover$TurnoverRatio
+
+# Add missing columns to Competition Sets
+CompNoAttrition <- CompNoAttrition %>% add_column(Attrition="", .after = "Age")
+CompNoSalary <- CompNoSalary %>% add_column(MonthlyIncome=0, .after = "MaritalStatus")
 
 # Filter Attrition
 CompAtt <- Comp %>% filter(Attrition == "Yes")
 CompNoAtt <- Comp %>% filter(Attrition == "No")
-
-# Add missing columns to Competition Sets
-CompNoAtt <- CompNoAtt %>% add_column(Attrition="", .after = "Age")
-CompNoSal <- CompNoSal %>% add_column(MonthlyIncome=0, .after = "MaritalStatus")
 
 ################################
 
@@ -101,8 +150,7 @@ gg <- ggplot(Comp, aes(x=YearsAtCompany, y=MonthlyIncome)) +
 
 plot(gg)
 
-
-#####
+# Bar chart of Job Roles
 ggplot(Comp, aes(x=JobRole, y=JobSatisfaction)) + 
   geom_bar(stat="identity", width=.5, fill="tomato3") + 
   labs(title="Ordered Bar Chart", 
@@ -146,18 +194,18 @@ g <- ggplot(RedRole, aes(JobRole, YearsInCurrentRole))
 g + geom_boxplot(aes(fill=factor(Attrition))) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
     labs(title="Box plot of Attrition", 
-         subtitle="Stock Option Level by Job Role",
+         subtitle="Years in Current Role by Job Role",
          x="Job Role",
-         y="Stock Option Level")
+         y="Years in Current Role")
 
 # Plot the Reduced job roles and TurnoverRatio
 g <- ggplot(RedRole, aes(JobRole, TurnoverRatio))
 g + geom_boxplot(aes(fill=factor(Attrition))) + 
   theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
     labs(title="Box plot of Attrition", 
-         subtitle="Stock Option Level by Job Role",
+         subtitle="Turnover Ration by Job Role",
          x="Job Role",
-         y="Stock Option Level")
+         y="Turnover Ratio")
 
 # Bar chart of ATtrition by Role
 x <- Comp %>% filter(Attrition == "Yes") %>% count(JobRole)
@@ -180,9 +228,6 @@ g + geom_bar(stat="identity", width = 0.8, fill="lightskyblue") +
           x="Job Role",
           y="Attrition Count") +
       theme(axis.text.x = element_text(angle=65, vjust=0.6))
-
-z$JobRole <- x$JobRole
-z$n <- x$n / (x$n + y$n) * 100
 
 # histograms
 hist(CompAtt$MonthlyIncome, col = "red", breaks = 50, 
@@ -226,21 +271,6 @@ hist(CompNoAtt$YearsInCurrentRole, col = "green", breaks = 18,
      main = "Years in Current Role (No Attrition)", xlab = "Years in Current Role", ylab = "Occurances") 
 
 ###################################
-
-# Compute new columns of data
-
-## Turnover Ratio is based on the number of years in the work force divided by the number of companies worked.
-## The higher the ratio the longer they stay with a company  
-turnover = data.frame(TurnoverRatio = 1:cols)
-for (i in 1:cols) {
-  if (Comp[i,]$NumCompaniesWorked == 0) {
-    turnover[i,] = Comp[i,]$TotalWorkingYears / (Comp[i,]$NumCompaniesWorked + 1)
-  }
-  else {
-    turnover[i,] = Comp[i,]$TotalWorkingYears / Comp[i,]$NumCompaniesWorked
-  }
-}
-Comp$TurnoverRatio = turnover$TurnoverRatio
 
 smallstay <- CompNoAtt[-c(3,4,6,9,13,17,19,23,24)]
 meanstay <- colMeans(smallstay)
@@ -287,16 +317,73 @@ Comp %>% select(Attrition, StockOptionLevel, YearsInCurrentRole, TurnoverRatio) 
 percentages <- data.frame(perc = 1:37)
 percentages$perc = 0
 
-
 #####################################
 
+# Create numeric factors for non-numeric data
+CompNoSalary <- CompNoSalary %>% mutate(Attrition = case_when(Attrition == "No" ~ 0, Attrition == "Yes" ~ 1))
 
+Comp <- Comp %>% mutate(BusinessTravel = case_when(
+  BusinessTravel == "Non-Travel" ~ 0, BusinessTravel == "Travel_Rarely" ~ 1, BusinessTravel == "Travel_Frequently" ~ 2))
+CompNoAttrition <- CompNoAttrition %>% mutate(BusinessTravel = case_when(
+  BusinessTravel == "Non-Travel" ~ 0, BusinessTravel == "Travel_Rarely" ~ 1, BusinessTravel == "Travel_Frequently" ~ 2))
+CompNoSalary <- CompNoSalary %>% mutate(BusinessTravel = case_when(
+  BusinessTravel == "Non-Travel" ~ 0, BusinessTravel == "Travel_Rarely" ~ 1, BusinessTravel == "Travel_Frequently" ~ 2))
 
+Comp <- Comp %>% mutate(Department = case_when(
+  Department == "Human Resources" ~ 0, Department == "Research & Development" ~ 1, Department == "Sales" ~ 2))
+CompNoAttrition <- CompNoAttrition %>% mutate(Department = case_when(
+  Department == "Human Resources" ~ 0, Department == "Research & Development" ~ 1, Department == "Sales" ~ 2))
+CompNoSalary <- CompNoSalary %>% mutate(Department = case_when(
+  Department == "Human Resources" ~ 0, Department == "Research & Development" ~ 1, Department == "Sales" ~ 2))
 
+Comp <- Comp %>% mutate(EducationField = case_when(
+  EducationField == "Human Resources" ~ 0, EducationField == "Life Sciences" ~ 1, EducationField == "Marketing" ~ 2, EducationField == "Medical" ~ 3, EducationField == "Other" ~ 4, EducationField == "Technical Degree" ~ 5))
+CompNoAttrition <- CompNoAttrition %>% mutate(EducationField = case_when(
+  EducationField == "Human Resources" ~ 0, EducationField == "Life Sciences" ~ 1, EducationField == "Marketing" ~ 2, EducationField == "Medical" ~ 3, EducationField == "Other" ~ 4, EducationField == "Technical Degree" ~ 5))
+CompNoSalary <- CompNoSalary %>% mutate(EducationField = case_when(
+  EducationField == "Human Resources" ~ 0, EducationField == "Life Sciences" ~ 1, EducationField == "Marketing" ~ 2, EducationField == "Medical" ~ 3, EducationField == "Other" ~ 4, EducationField == "Technical Degree" ~ 5))
 
+Comp <- Comp %>% mutate(Gender = case_when(
+  Gender == "Male" ~ 0, Gender == "Female" ~ 1))
+CompNoAttrition <- CompNoAttrition %>% mutate(Gender = case_when(
+  Gender == "Male" ~ 0, Gender == "Female" ~ 1))
+CompNoSalary <- CompNoSalary %>% mutate(Gender = case_when(
+  Gender == "Male" ~ 0, Gender == "Female" ~ 1))
 
+Comp <- Comp %>% mutate(JobRole = case_when(
+  JobRole == "Healthcare Representative" ~ 0, JobRole == "Human Resources" ~ 1, JobRole == "Laboratory Technician" ~ 2, JobRole == "Manager" ~ 3, JobRole == "Manufacturing Director" ~ 4, JobRole == "Research Director" ~ 5, JobRole == "Research Scientist" ~ 6, JobRole == "Sales Executive" ~ 7, JobRole == "Sales Representative" ~ 8))
+CompNoAttrition <- CompNoAttrition %>% mutate(JobRole = case_when(
+  JobRole == "Healthcare Representative" ~ 0, JobRole == "Human Resources" ~ 1, JobRole == "Laboratory Technician" ~ 2, JobRole == "Manager" ~ 3, JobRole == "Manufacturing Director" ~ 4, JobRole == "Research Director" ~ 5, JobRole == "Research Scientist" ~ 6, JobRole == "Sales Executive" ~ 7, JobRole == "Sales Representative" ~ 8))
+CompNoSalary <- CompNoSalary %>% mutate(JobRole = case_when(
+  JobRole == "Healthcare Representative" ~ 0, JobRole == "Human Resources" ~ 1, JobRole == "Laboratory Technician" ~ 2, JobRole == "Manager" ~ 3, JobRole == "Manufacturing Director" ~ 4, JobRole == "Research Director" ~ 5, JobRole == "Research Scientist" ~ 6, JobRole == "Sales Executive" ~ 7, JobRole == "Sales Representative" ~ 8))
 
+Comp <- Comp %>% mutate(MaritalStatus = case_when(
+  MaritalStatus == "Divorced" ~ 0, MaritalStatus == "Married" ~ 1, MaritalStatus == "Single" ~ 2))
+CompNoAttrition <- CompNoAttrition %>% mutate(MaritalStatus = case_when(
+  MaritalStatus == "Divorced" ~ 0, MaritalStatus == "Married" ~ 1, MaritalStatus == "Single" ~ 2))
+CompNoSalary <- CompNoSalary %>% mutate(MaritalStatus = case_when(
+  MaritalStatus == "Divorced" ~ 0, MaritalStatus == "Married" ~ 1, MaritalStatus == "Single" ~ 2))
 
+Comp$Age <- as.factor(Comp$Age)
+Comp$DistanceFromHome <- as.factor(Comp$DistanceFromHome)
+Comp$Education <- as.factor(Comp$Education)
+Comp$EnvironmentSatisfaction <- as.factor(Comp$EnvironmentSatisfaction)
+Comp$JobInvolvement <- as.factor(Comp$JobInvolvement)
+Comp$JobLevel <- as.factor(Comp$JobLevel)
+Comp$JobSatisfaction <- as.factor(Comp$JobSatisfaction)
+Comp$MonthlyIncome <- as.factor(Comp$MonthlyIncome)
+Comp$NumCompaniesWorked <- as.factor(Comp$NumCompaniesWorked)
+Comp$PercentSalaryHike <- as.factor(Comp$PercentSalaryHike)
+Comp$PerformanceRating <- as.factor(Comp$PerformanceRating)
+Comp$RelationshipSatisfaction <- as.factor(Comp$RelationshipSatisfaction)
+Comp$StockOptionLevel <- as.factor(Comp$StockOptionLevel)
+Comp$TotalWorkingYears <- as.factor(Comp$TotalWorkingYears)
+Comp$TrainingTimesLastYear <- as.factor(Comp$TrainingTimesLastYear)
+Comp$WorkLifeBalance <- as.factor(Comp$WorkLifeBalance)
+Comp$YearsAtCompany <- as.factor(Comp$YearsAtCompany)
+Comp$YearsInCurrentRole <- as.factor(Comp$YearsInCurrentRole)
+Comp$YearsSinceLastPromotion <- as.factor(Comp$YearsSinceLastPromotion)
+Comp$YearsWithCurrManager <- as.factor(Comp$YearsWithCurrManager)
 
 #####################################
 
@@ -308,45 +395,109 @@ percentages$perc = 0
 # Split the data into a train and test set based on a defined percentage
 set.seed(14)
 splitPerc = 0.75
-trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
-train = Comp[trainIndices,]
-test = Comp[-trainIndices,]
+iterations = 100
+numks = 60
+masterAcc = matrix(nrow = iterations, ncol = numks)
+masterSens = matrix(nrow = iterations, ncol = numks)
+masterSpec = matrix(nrow = iterations, ncol = numks)
 
-## Find the best k-factor
-accs = data.frame(accuracy = numeric(30), k = numeric(30))
-
-for(i in 1:30)
+for(i in 1:iterations)
 {
-  classifications = knn(train[,c(2,33)],test[,c(2,33)],train$Attrition, prob = TRUE, k = i)
-  table(test$Attrition,classifications)
-  CM = confusionMatrix(table(test$Attrition,classifications))
-  accs$accuracy[i] = CM$overall[1]
-  accs$k[i] = i
+  accs = data.frame(accuracy = numeric(60), k = numeric(60))
+  trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
+  train = Comp[trainIndices,]
+  test = Comp[-trainIndices,]
+  for (j in 1:numks) {
+    classifications = knn(train[,c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)],test[,c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)],train$Attrition, prob = TRUE, k = j)
+    table(test$Attrition,classifications)
+    CM = confusionMatrix(table(test$Attrition,classifications))
+    masterAcc[i,j] = CM$overall[1]
+    masterSens[i,j] = CM$byClass[1]
+    masterSpec[i,j] = CM$byClass[2]
+  }
 }
 
-plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab = "Accuracy", main = "K-factor vs Accuracy") 
+MeanAcc = colMeans(masterAcc)
+MeanSens = colMeans(masterSens)
+MeanSpec = colMeans(masterSpec)
+
+plot(seq(1,numks,1),MeanAcc,type = "l",xlab = "k", ylab = "Accuracy", main = "K-factor vs Accuracy")
+
+which.max(MeanAcc)
+max(MeanAcc)
+max(MeanSens)
+max(MeanSpec)
+CM
 
 # plot knn
 test %>% ggplot(aes(x = Age, TurnoverRatio,color = Attrition)) + geom_point() + ggtitle("Age vs Gender") + theme(plot.title = element_text(hjust = 0.5))
-train %>% ggplot(aes(x = Age, DistanceFromHome,color = Attrition)) + geom_point() + ggtitle("Age vs Gender") + theme(plot.title = element_text(hjust = 0.5))
+train %>% ggplot(aes(x = Age, TurnoverRatio,color = Attrition)) + geom_point() + ggtitle("Age vs Gender") + theme(plot.title = element_text(hjust = 0.5))
 
-# knn
-classifications = knn(train[,c(2,33)],test[,c(2,33)],train$Attrition, prob = TRUE, k = 10)
-table(test$Attrition,classifications)
-CM = confusionMatrix(table(test$Attrition,classifications))
+## NB Model and Confusion Matrix
+set.seed(14)
+splitPerc = 0.75
+iterations = 100
+numks = 60
+masterAcc = matrix(nrow = iterations)
+masterSens = matrix(nrow = iterations)
+masterSpec = matrix(nrow = iterations)
+
+for(i in 1:iterations)
+{
+  trainIndices = sample(1:dim(Comp)[1],round(splitPerc * dim(Comp)[1]))
+  train = Comp[trainIndices,]
+  test = Comp[-trainIndices,]
+  
+  model = naiveBayes(train[,c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)],factor(train$Attrition))
+  table(test$Attrition,predict(model,test[,c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)]))
+  CM = confusionMatrix(table(test$Attrition,predict(model,test[,c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)])))
+  masterAcc[i] = CM$overall[1]
+  masterSens[i] = CM$byClass[1]
+  masterSpec[i] = CM$byClass[2]
+}
+
+MeanAcc = mean(masterAcc)
+MeanSens = mean(masterSens)
+MeanSpec = mean(masterSpec)
+MeanAcc
+MeanSens
+MeanSpec
+which.max(MeanAcc)
+max(MeanAcc)
 CM
 
-# NB Model and Confusion Matrix
-model = naiveBayes(train[,c(2,29,33,37)],factor(train$Attrition, labels = c("No", "Yes")))
-table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,29,33,37)]))
-CM = confusionMatrix(table(factor(test$Attrition, labels = c("No", "Yes")),predict(model,test[,c(2,29,33,37)])))
-CM
+# Predict attrition based on the model
+redCompNoAtt <- CompNoAttrition[c(2,4,6,7,8,9,13,17,18,19,20,22,25,26,27,29,30,31,32,33,34,35,36)]
+pred <- predict(model, redCompNoAtt)
+wcsv <- cbind.data.frame(ID = CompNoAttrition$ID, Attrition = pred)
+write.csv(wcsv, file = "~/03-School/DS 6306/Project 2/Case2PredictionsBurk Attrition.csv", row.names=F)
 
-#################################
+#####################
 
+# Regression predictions for salary
 
+Comp = Comp1
+Comp$Attrition <- as.character(Comp$Attrition)
+for (i in 1:dim(Comp)[1]) {
+  if (Comp[i,]$Attrition == "Yes"){
+    Comp[i,]$Attrition = "1"
+  } else {
+    Comp[i,]$Attrition = "0"
+  }
+}
+Comp$Attrition <- as.integer(Comp$Attrition)
 
+TrainObs = sample(seq(1,dim(Comp)[1]),round(.75*dim(Comp)[1]),replace = FALSE)
+CompTrain = Comp[TrainObs,]
+CompTest = Comp[-TrainObs,]
+fit = lm(MonthlyIncome ~ Age + BusinessTravel + Department + DistanceFromHome + Education + EducationField + Gender + JobRole + JobSatisfaction + MaritalStatus + NumCompaniesWorked + PercentSalaryHike + PerformanceRating + RelationshipSatisfaction + StockOptionLevel + TotalWorkingYears + TrainingTimesLastYear + WorkLifeBalance + YearsAtCompany + YearsInCurrentRole + YearsSinceLastPromotion + YearsWithCurrManager, data = Comp)
+summary(fit)
 
+Model1 = predict(fit, newdata = CompNoSalary)
+as.data.frame(Model1)
 
+wcsv <- cbind.data.frame(CompNoSalary$ID,Model1)
+colnames(wcsv) <- c("ID","MonthlyIncome")
+write.csv(wcsv, file = "~/03-School/DS 6306/Project 2/Case2PredictionsBurk Salary.csv", row.names=F)
 
 ```
